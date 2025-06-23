@@ -25,6 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <h5>Participants:</h5>
+            ${renderParticipantsList(details.participants)}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
@@ -39,6 +43,18 @@ document.addEventListener("DOMContentLoaded", () => {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
     }
+  }
+
+  function renderParticipantsList(participants) {
+    if (!participants || participants.length === 0) {
+      return '<p class="no-participants">No participants yet</p>';
+    }
+
+    return `
+      <ul class="participants-list">
+        ${participants.map(email => `<li>${email}</li>`).join('')}
+      </ul>
+    `;
   }
 
   // Handle form submission
@@ -58,13 +74,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
 
-      if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
-        signupForm.reset();
+      if (!response.ok) {
+        messageDiv.className = "message error";
+        messageDiv.textContent = result.detail || "Error signing up for activity";
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        messageDiv.className = "message success";
+        messageDiv.textContent = result.message;
+        signupForm.reset();
+
+        // Refresh activities to show updated participants
+        await fetchActivities();
       }
 
       messageDiv.classList.remove("hidden");
@@ -74,8 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.classList.add("hidden");
       }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
+      messageDiv.className = "message error";
+      messageDiv.textContent = "An error occurred during the signup process";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
     }
